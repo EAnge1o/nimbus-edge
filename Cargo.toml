@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nimbus-edge-core",
+    "crates/nimbus-edge-server",
+    "crates/nimbus-edge-cli",
+    "crates/nimbus-edge-tests",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["EAnge1o"]
+repository = "https://github.com/EAnge1o/nimbus-edge"
+
+[workspace.dependencies]
+nimbus-edge-core = { path = "crates/nimbus-edge-core" }
+nimbus-edge-server = { path = "crates/nimbus-edge-server" }
+# The inference core stays an independent crate; it is consumed as a
+# dependency, never forked. Layout: nimbus-edge and nimbus-infer-rs are
+# sibling checkouts (see scripts/fetch-deps.* and README "From source").
+nimbus-infer-rs = { path = "../nimbus-infer-rs" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "signal"] }
+axum = "0.8"
+clap = { version = "4", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+sha2 = "0.10"
+tokio-stream = "0.1"
+bytes = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream"] }
+futures-util = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

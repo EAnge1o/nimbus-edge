@@ -1,0 +1,62 @@
+{
+  "engine": "nimbus-infer-rs",
+  "host": {
+    "arch": "x86_64",
+    "build": {
+      "opt_level": "release",
+      "profile": "release",
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "target": "x86_64-pc-windows-gnu"
+    },
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "memory_total_bytes": 16849293312,
+    "os": "windows",
+    "threads": 20
+  },
+  "measured": true,
+  "model": {
+    "arch": "gpt2",
+    "context_len": 256,
+    "kv_cache_mb_per_seq": 1.0,
+    "name": "tiny-gpt2",
+    "params": 878848,
+    "path": "\\\\?\\C:\\Users\\32413\\.zcode\\workspace\\draft-82b1acd6-edca-4c84-bb6d-6c19bf486709\\nimbus-infer-rs\\tests\\fixtures\\tiny-gpt2",
+    "quant": "fp32",
+    "weight_mb": 3.22
+  },
+  "protocol": {
+    "aggregation": "median",
+    "max_new_tokens": 64,
+    "prompt": "The quick brown fox jumps over the lazy dog.",
+    "prompt_tokens": 36,
+    "runs": 3,
+    "temperature": 0.0,
+    "warmup": 1
+  },
+  "results": {
+    "decode_tok_s": 2978.3,
+    "peak_rss_bytes": 12959744,
+    "prefill_tok_s": 654.9,
+    "runs": [
+      {
+        "decode_s": 0.019,
+        "generated_tokens": 64,
+        "prefill_s": 0.055,
+        "ttft_s": 0.055
+      },
+      {
+        "decode_s": 0.024,
+        "generated_tokens": 64,
+        "prefill_s": 0.048,
+        "ttft_s": 0.048
+      },
+      {
+        "decode_s": 0.021,
+        "generated_tokens": 64,
+        "prefill_s": 0.059,
+        "ttft_s": 0.059
+      }
+    ],
+    "ttft_s": 0.055
+  }
+}

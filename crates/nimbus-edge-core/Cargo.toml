@@ -1,0 +1,22 @@
+[package]
+name = "nimbus-edge-core"
+description = "Request model, chat templates, scheduling and caching for Nimbus Edge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[features]
+# Random-checkpoint builder used by the test suites and the black-box test.
+# Never enabled for release binaries.
+test-support = []
+
+[dependencies]
+nimbus-infer-rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

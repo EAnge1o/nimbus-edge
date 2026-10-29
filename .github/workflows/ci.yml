@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: nimbus-edge
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: nimbus-edge
+      - name: Check out the inference core (sibling path dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: EAnge1o/nimbus-infer-rs
+          path: nimbus-infer-rs
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: nimbus-edge
+      - name: Format (workspace packages only)
+        run: cargo fmt -p nimbus-edge-core -p nimbus-edge-server -p nimbus-edge-cli -p nimbus-edge-tests -- --check
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets --features nimbus-edge-core/test-support -- -D warnings
+      - name: Unit + integration + black-box tests
+        run: cargo test --workspace --features nimbus-edge-core/test-support
+      - name: Release build (artifact binary)
+        run: cargo build --release
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: ./scripts/package.sh
+            asset: linux-x64
+          - os: windows-latest
+            script: ./scripts/package.ps1
+            asset: windows-x64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: nimbus-edge
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: nimbus-edge
+      - name: Check out the inference core
+        uses: actions/checkout@v4
+        with:
+          repository: EAnge1o/nimbus-infer-rs
+          path: nimbus-infer-rs
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: nimbus-edge
+      - name: Build release binary
+        run: cargo build --release
+      - name: Package (zip/tar.gz + SHA256)
+        shell: bash
+        run: ${{ matrix.script }}
+      - name: Smoke test the packaged artifact
+        shell: bash
+        run: |
+          case "${{ matrix.asset }}" in
+            windows-x64) pwsh -File scripts/smoke.ps1 -ArtifactDir dist/nimbus-edge-* ;;
+            linux-x64)   bash scripts/smoke.sh dist/nimbus-edge-* ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nimbus-edge-${{ matrix.asset }}
+          path: nimbus-edge/dist/nimbus-edge-*
+          if-no-files-found: error

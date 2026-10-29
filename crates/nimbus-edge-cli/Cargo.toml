@@ -1,0 +1,32 @@
+[package]
+name = "nimbus-edge-cli"
+description = "nimbus-edge command line: serve, models, status, bench"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "nimbus-edge"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+nimbus-edge-core = { workspace = true }
+nimbus-edge-server = { workspace = true }
+nimbus-infer-rs = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+reqwest = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true, features = ["blocking"] }
+futures-util = { workspace = true }
+nimbus-edge-core = { workspace = true, features = ["test-support"] }
