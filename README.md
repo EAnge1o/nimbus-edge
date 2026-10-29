@@ -25,9 +25,10 @@ crate. See [ARCHITECTURE.md](ARCHITECTURE.md) for the boundary.
 cargo build --release
 # The binary is target/release/nimbus-edge(.exe).
 
-# 2. Import a model (any nimbus-infer checkpoint; a tiny fixture is bundled
-#    in release artifacts and lives in the core repo for source builds):
-nimbus-edge models import --path models/tiny-gpt2 --name tiny-gpt2 --chat-template chatml
+# 2. Import a model (any nimbus-infer checkpoint). Source builds use the
+#    fixture from the sibling core checkout; release artifacts bundle it as
+#    models/tiny-gpt2:
+nimbus-edge models import     --path ../nimbus-infer-rs/tests/fixtures/tiny-gpt2     --name tiny-gpt2 --chat-template chatml
 
 # 3. Serve it:
 nimbus-edge serve --model tiny-gpt2
