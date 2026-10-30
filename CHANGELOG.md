@@ -4,6 +4,33 @@ All notable changes to nimbus-edge are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org).
 
+## [0.2.0] — 2026-10-30
+
+### Added
+
+- `stream_options: {"include_usage": true}` (chat, streaming): one final
+  `choices: []` usage chunk before `data: [DONE]`, OpenAI-compatible;
+  verified against the official Python SDK.
+- Opt-in CORS (`--cors-origins "*" | origin,list`) with preflight handling
+  so browser clients (Open WebUI, LibreChat) can connect directly; default
+  remains off (see SECURITY.md).
+- `GET /` self-describing root endpoint.
+- Request logging via `tracing` (initialized in `serve`; `RUST_LOG`
+  respected, `info` default).
+- `scripts/check.ps1` / `check.sh`: the full CI gate as one local command.
+- `docs/demo.svg` + `docs/make_demo_svg.py`: README screenshot rendered
+  from real command output (house style of the Nimbus family).
+- Real-model verification: gpt2-124M and SmolLM2-135M-Instruct converted
+  from HuggingFace, served end-to-end, benchmarked
+  ([benchmarks/](benchmarks/README.md)); gpt2 greedy output is
+  token-identical to the Python engine.
+
+### Fixed (engine, nimbus-infer-rs — separate repo)
+
+- The RoPE frequency table is now built in f64 and stored f32, matching the
+  Python engine bit-for-bit; a pure-f32 pipeline drifted ~1 ulp per entry,
+  which accumulated across layers on deep models.
+
 ## [0.1.0] — 2026-10-30
 
 First release.

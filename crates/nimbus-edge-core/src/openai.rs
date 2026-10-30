@@ -45,10 +45,21 @@ pub struct ChatCompletionRequest {
     pub seed: Option<i64>,
     #[serde(default)]
     pub stream: bool,
+    /// OpenAI-compatible streaming options. Only `include_usage` exists in
+    /// this subset: it appends one final usage chunk before `data: [DONE]`.
+    #[serde(default)]
+    pub stream_options: Option<StreamOptions>,
     /// Caller identity metadata. Accepted and ignored: it has no effect on
     /// inference (documented in the README compatibility table).
     #[serde(default)]
     pub user: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StreamOptions {
+    #[serde(default)]
+    pub include_usage: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

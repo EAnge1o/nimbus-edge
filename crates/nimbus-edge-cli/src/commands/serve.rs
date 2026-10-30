@@ -52,9 +52,15 @@ pub struct ServeArgs {
 
     #[arg(long, default_value_t = 2)]
     pub prefix_cache_entries: usize,
+
+    /// Allow browser clients from these origins (comma-separated, or "*" for
+    /// any). Off by default — see SECURITY.md.
+    #[arg(long)]
+    pub cors_origins: Option<String>,
 }
 
 pub fn run(models_dir: &std::path::Path, args: ServeArgs) -> Result<(), EdgeError> {
+    init_tracing();
     if let Some(n) = args.threads {
         if n == 0 {
             return Err(EdgeError::invalid("--threads must be >= 1"));
@@ -111,14 +117,27 @@ pub fn run(models_dir: &std::path::Path, args: ServeArgs) -> Result<(), EdgeErro
         let base = format!("http://{}", local);
 
         print_banner(&base, &info, &args);
+        let cors_origins = args.cors_origins.as_ref().map(|list| {
+            list.split(',')
+                .map(|o| o.trim().to_string())
+                .filter(|o| !o.is_empty())
+                .collect::<Vec<_>>()
+        });
         let cfg = ServerConfig {
             served_model_name: info.name.clone(),
             auth_token: args.auth_token.clone(),
+            cors_origins,
         };
         nimbus_edge_server::serve(listener, scheduler, info, cfg)
             .await
             .map_err(|e| EdgeError::Internal(format!("server: {e}")))
     })
+}
+
+fn init_tracing() {
+    use tracing_subscriber::EnvFilter;
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
 fn print_banner(base: &str, info: &nimbus_edge_core::backend::ModelInfo, args: &ServeArgs) {

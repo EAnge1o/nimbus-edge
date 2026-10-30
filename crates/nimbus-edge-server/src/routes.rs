@@ -32,6 +32,7 @@ pub fn router(state: SharedState) -> Router {
             require_bearer,
         ));
     Router::new()
+        .route("/", get(root))
         .route("/healthz", get(healthz))
         .nest("/v1", v1)
         .with_state(state)
@@ -58,6 +59,22 @@ async fn healthz(State(state): State<SharedState>) -> Json<serde_json::Value> {
         },
         "queue": state.scheduler.stats(),
         "prefix_cache": state.scheduler.cache_stats(),
+    }))
+}
+
+/// Self-describing root, so `curl http://127.0.0.1:11434/` tells a newcomer
+/// what this server is and where to go next.
+async fn root(State(state): State<SharedState>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "name": "nimbus-edge",
+        "version": nimbus_edge_core::VERSION,
+        "model": state.model.name,
+        "endpoints": [
+            "GET /healthz",
+            "GET /v1/models",
+            "POST /v1/chat/completions",
+            "POST /v1/completions",
+        ],
     }))
 }
 
@@ -89,7 +106,6 @@ const CHAT_UNSUPPORTED: &[&str] = &[
     "tools",
     "tool_choice",
     "response_format",
-    "stream_options",
     "max_completion_tokens",
     "service_tier",
     "metadata",
@@ -188,7 +204,26 @@ async fn chat_completions(
         Err(e) => return ApiError(e).into_response(),
     };
 
-    respond(state, GenRequest { prompt, params }, req.stream, true).await
+    let include_usage = match (&req.stream_options, req.stream) {
+        (Some(o), true) => o.include_usage,
+        (Some(_), false) => {
+            return ApiError(EdgeError::invalid_param(
+                "stream_options is only valid when stream is true",
+                "stream_options",
+            ))
+            .into_response()
+        }
+        (None, _) => false,
+    };
+
+    respond(
+        state,
+        GenRequest { prompt, params },
+        req.stream,
+        true,
+        include_usage,
+    )
+    .await
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +262,14 @@ async fn completions(
         Ok(p) => p,
         Err(e) => return ApiError(e).into_response(),
     };
-    respond(state, GenRequest { prompt, params }, req.stream, false).await
+    respond(
+        state,
+        GenRequest { prompt, params },
+        req.stream,
+        false,
+        false,
+    )
+    .await
 }
 
 // ---------------------------------------------------------------------------
@@ -235,7 +277,13 @@ async fn completions(
 // ---------------------------------------------------------------------------
 
 /// Submit to the scheduler and shape the response (JSON or SSE).
-async fn respond(state: SharedState, req: GenRequest, stream: bool, is_chat: bool) -> Response {
+async fn respond(
+    state: SharedState,
+    req: GenRequest,
+    stream: bool,
+    is_chat: bool,
+    include_usage: bool,
+) -> Response {
     let handle = match state.scheduler.submit(req) {
         Ok(h) => h,
         Err(e) => return ApiError(e).into_response(),
@@ -244,7 +292,7 @@ async fn respond(state: SharedState, req: GenRequest, stream: bool, is_chat: boo
     let model = state.model.name.clone();
 
     if stream {
-        stream_response(handle, id, model).await
+        stream_response(handle, id, model, include_usage).await
     } else {
         collect_json(handle, id, model, is_chat).await
     }
@@ -316,10 +364,11 @@ async fn stream_response(
     handle: nimbus_edge_core::scheduler::SubmitHandle,
     id: String,
     model: String,
+    include_usage: bool,
 ) -> Response {
     let events = CancelAwareStream::new(handle.rx, handle.alive);
     let created = unix_now();
-    let shaped = sse::ShapedChatStream::new(events, id, model, created);
+    let shaped = sse::ShapedChatStream::new(events, id, model, created, include_usage);
     axum::response::Sse::new(sse::with_done(shaped))
         .keep_alive(sse::keep_alive())
         .into_response()

@@ -64,6 +64,7 @@ pub struct ServerOptions {
     pub max_queue_size: usize,
     pub prefix_cache: bool,
     pub auth_token: Option<String>,
+    pub cors_origins: Option<Vec<String>>,
 }
 
 impl Default for ServerOptions {
@@ -74,6 +75,7 @@ impl Default for ServerOptions {
             max_queue_size: 16,
             prefix_cache: false,
             auth_token: None,
+            cors_origins: None,
         }
     }
 }
@@ -107,6 +109,7 @@ pub async fn spawn_server(model_dir: &Path, opts: ServerOptions) -> TestServer {
         ServerConfig {
             served_model_name: "tiny".to_string(),
             auth_token: opts.auth_token,
+            cors_origins: opts.cors_origins,
         },
     );
     let bg = tokio::spawn(async move {

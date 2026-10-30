@@ -50,23 +50,39 @@ impl Stream for CancelAwareStream {
 }
 
 /// Shapes raw scheduler events into `chat.completion.chunk` events, carrying
-/// the `role` field in the first delta the way OpenAI clients expect.
+/// the `role` field in the first delta the way OpenAI clients expect. With
+/// `include_usage`, one final `choices: []` chunk carrying the usage is
+/// emitted between the finish chunk and `[DONE]`, as OpenAI clients that set
+/// `stream_options.include_usage` expect.
 pub struct ShapedChatStream {
     inner: CancelAwareStream,
     id: String,
     model: String,
     created: u64,
     role_sent: bool,
+    include_usage: bool,
+    /// Set after the terminal event: emit the usage chunk, then end.
+    pending_usage: Option<Usage>,
 }
 
+type Usage = nimbus_edge_core::openai::Usage;
+
 impl ShapedChatStream {
-    pub fn new(inner: CancelAwareStream, id: String, model: String, created: u64) -> Self {
+    pub fn new(
+        inner: CancelAwareStream,
+        id: String,
+        model: String,
+        created: u64,
+        include_usage: bool,
+    ) -> Self {
         ShapedChatStream {
             inner,
             id,
             model,
             created,
             role_sent: false,
+            include_usage,
+            pending_usage: None,
         }
     }
 }
@@ -75,6 +91,17 @@ impl Stream for ShapedChatStream {
     type Item = Result<Event, axum::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        if let Some(usage) = self.pending_usage.take() {
+            let body = serde_json::json!({
+                "id": self.id,
+                "object": "chat.completion.chunk",
+                "created": self.created,
+                "model": self.model,
+                "choices": [],
+                "usage": usage,
+            });
+            return Poll::Ready(Some(Ok(Event::default().data(body.to_string()))));
+        }
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(StreamEvent::Token(delta))) => {
                 let mut obj = serde_json::Map::new();
@@ -92,6 +119,13 @@ impl Stream for ShapedChatStream {
                 ))))
             }
             Poll::Ready(Some(StreamEvent::Done(Ok(out)))) => {
+                if self.include_usage {
+                    self.pending_usage = Some(Usage {
+                        prompt_tokens: out.prompt_tokens,
+                        completion_tokens: out.completion_tokens,
+                        total_tokens: out.prompt_tokens + out.completion_tokens,
+                    });
+                }
                 let mut obj = serde_json::Map::new();
                 if !self.role_sent {
                     obj.insert("role".into(), serde_json::json!("assistant"));

@@ -16,6 +16,7 @@ use nimbus_edge_core::backend::ModelInfo;
 use nimbus_edge_core::scheduler::Scheduler;
 
 pub mod auth;
+pub mod cors;
 pub mod errors;
 pub mod routes;
 pub mod sse;
@@ -31,7 +32,7 @@ pub fn build_router(scheduler: Arc<Scheduler>, model: ModelInfo, cfg: ServerConf
         cfg,
         started: Instant::now(),
     });
-    routes::router(state)
+    routes::router(state.clone()).layer(axum::middleware::from_fn_with_state(state, cors::cors))
 }
 
 /// Serve on an already-bound listener until the shutdown signal fires, then

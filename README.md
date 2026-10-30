@@ -15,6 +15,12 @@ one command, `POST /v1/chat/completions`.
 Nimbus Edge never vendors or forks the inference core; it consumes it as a
 crate. See [ARCHITECTURE.md](ARCHITECTURE.md) for the boundary.
 
+![nimbus-edge serving SmolLM2-135M-Instruct: import, serve, and a real chat
+completion rendered from actual command output](docs/demo.svg)
+
+*The screenshot is rendered from real command output (`docs/make_demo_svg.py`),
+not staged — SmolLM2-135M-Instruct answering over the local HTTP API.*
+
 ---
 
 ## 60-second quick start
@@ -84,9 +90,20 @@ tokenizer/merges.txt
 
 That format covers models converted with the Python engine's
 `python -m nimbus_infer convert`, e.g. GPT-2 family and LLaMA-family
-architectures (RoPE/RMSNorm/SwiGLU/GQA included). Verified working with the
-core engine: **gpt2-124M, distilgpt2-82M, SmolLM2-135M**; the committed
-`tiny-gpt2` fixture (random weights) is used by the whole test suite.
+architectures (RoPE/RMSNorm/SwiGLU/GQA included).
+
+Verified end-to-end through the HTTP API on this machine (2026-10-30,
+converted from HuggingFace via the Python engine):
+
+| model | arch | chat template | verified |
+|---|---|---|---|
+| gpt2-124M | gpt2 | none (base model) | real completion, greedy parity vs the Python engine (32/32 tokens) |
+| SmolLM2-135M-Instruct | llama (GQA 9/3, RoPE) | chatml | real chat completion — "The capital of France is Paris." |
+| tiny-gpt2 (bundled fixture) | gpt2 | chatml (optional) | random weights; exercises the full API in tests and smoke |
+
+Measured throughput for these models: [benchmarks/README.md](benchmarks/README.md)
+(gpt2-124M fp32 decode ≈ 40 tok/s on an i7-12700H, int8 ≈ 56 tok/s — same
+engine, HTTP layer adds no per-token cost).
 
 GGUF is **not** supported in v1 — see the extension point note in
 [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -134,6 +151,9 @@ nimbus-edge serve --model <name-or-path> [--host 127.0.0.1] [--port 11434]
 - `--threads N` pins the engine's internal kernel threads (default: all
   cores; decode GEMVs cap themselves at 4 — see the core repo's notes on
   memory-bandwidth-bound decode).
+- `--cors-origins "*"` (or a comma-separated list) enables CORS for browser
+  clients — Open WebUI, LibreChat and friends work against it like against
+  Ollama. Off by default; see [SECURITY.md](SECURITY.md).
 
 ## API: the compatible subset
 
@@ -173,7 +193,8 @@ Known limitations of the subset (also surfaced as errors, not guessed):
 
 - content arrays (multimodal messages) and roles outside
   system/user/assistant are rejected;
-- there is no `usage` in streaming mode (no `stream_options`);
+- streaming `usage` requires the client to opt in with
+  `stream_options.include_usage` (as in the OpenAI API);
 - `finish_reason` is `stop` (stop string matched), `length` (token budget),
   or — a local extension, documented here — `cancelled` (generation was
   cancelled mid-flight);
@@ -277,7 +298,9 @@ and the honest status of cross-engine comparisons live in
 ## Testing
 
 ```bash
-cargo test --workspace --features nimbus-edge-core/test-support
+cargo test --workspace --features nimbus-edge-core/test-support   # tests only
+scripts/check.ps1   # or scripts/check.sh — the full CI gate locally:
+                    # fmt + clippy -D warnings + tests + release build
 ```
 
 covers: request parsing and error responses, registry import/list/inspect/
@@ -302,6 +325,19 @@ generated in-process — no network, no model downloads.
   distributed inference, no training.
 - The bundled `tiny-gpt2` has random weights: it validates the API, it does
   not produce meaningful text.
+
+## The Nimbus family
+
+Nimbus Edge is the serving layer of a from-scratch LLM stack:
+
+- [nimbus-infer](https://github.com/EAnge1o/nimbus-infer) — the original
+  NumPy-only engine (tokenizer, KV cache, quantization, from-scratch
+  transformer), also the checkpoint converter for HuggingFace models.
+- [nimbus-infer-rs](https://github.com/EAnge1o/nimbus-infer-rs) — the
+  std-only Rust rewrite of the same engine: AVX2/FMA kernels, int8/int4,
+  checkpoint-compatible with the Python version.
+- **nimbus-edge** (this repo) — the server: OpenAI-compatible HTTP, bounded
+  scheduling, model registry, one-binary distribution.
 
 ## License
 

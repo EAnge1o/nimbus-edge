@@ -291,3 +291,124 @@ async fn bearer_token_is_enforced_on_v1_but_not_healthz() {
         .unwrap();
     assert_eq!(resp.status().as_u16(), 200);
 }
+
+#[tokio::test]
+async fn stream_options_include_usage_appends_usage_chunk() {
+    let (_t, srv) = server(ChatTemplate::ChatMl).await;
+    let mut body = chat_body("hello", 6);
+    body["stream"] = serde_json::json!(true);
+    body["stream_options"] = serde_json::json!({"include_usage": true});
+    let events = srv.collect_sse("/v1/chat/completions", body).await;
+    assert_eq!(events.last().map(String::as_str), Some("[DONE]"));
+    // [...DONE) shape: finish chunk, then usage chunk with empty choices.
+    let chunks: Vec<serde_json::Value> = events[..events.len() - 1]
+        .iter()
+        .map(|e| serde_json::from_str(e).unwrap())
+        .collect();
+    let usage_chunk = chunks.last().unwrap();
+    assert_eq!(usage_chunk["choices"].as_array().unwrap().len(), 0);
+    assert!(usage_chunk["usage"]["total_tokens"].as_u64().unwrap() > 0);
+    assert_eq!(usage_chunk["object"], "chat.completion.chunk");
+    // The chunk before it carries finish_reason; no usage there.
+    let finish_chunk = &chunks[chunks.len() - 2];
+    assert!(finish_chunk["choices"][0]["finish_reason"].is_string());
+    assert!(finish_chunk["usage"].is_null());
+}
+
+#[tokio::test]
+async fn stream_options_without_stream_is_rejected() {
+    let (_t, srv) = server(ChatTemplate::None).await;
+    let (status, body) = srv
+        .post(
+            "/v1/completions",
+            serde_json::json!({"model":"tiny","prompt":"x","max_tokens":2,
+                "stream_options":{"include_usage":true}}),
+        )
+        .await;
+    // completions endpoint still lists stream_options as unsupported; and on
+    // chat, stream_options without stream=true is invalid per OpenAI.
+    assert_eq!(status, 400);
+    assert!(body["error"].is_object());
+}
+
+#[tokio::test]
+async fn root_endpoint_self_describes() {
+    let (_t, srv) = server(ChatTemplate::None).await;
+    let (status, body) = srv.get("/").await;
+    assert_eq!(status, 200);
+    assert_eq!(body["name"], "nimbus-edge");
+    assert!(body["endpoints"].as_array().unwrap().len() >= 4);
+}
+
+#[tokio::test]
+async fn cors_is_off_by_default_and_opt_in_works() {
+    let tmp = TempDir::new("cors");
+    let model = tmp.path().join("model");
+    nimbus_edge_core::fixture::write_random_checkpoint(&model, 41);
+
+    // Default: no CORS headers at all.
+    let srv = spawn_server(&model, ServerOptions::default()).await;
+    let resp = srv
+        .client
+        .get(format!("{}/healthz", srv.base))
+        .header("Origin", "http://webui.local")
+        .send()
+        .await
+        .unwrap();
+    assert!(resp.headers().get("access-control-allow-origin").is_none());
+    // Preflight without CORS config: not answered by the middleware (falls
+    // through to routing; OPTIONS on /healthz is not a route -> 405).
+    let resp = srv
+        .client
+        .request(reqwest::Method::OPTIONS, format!("{}/healthz", srv.base))
+        .header("Origin", "http://webui.local")
+        .header("Access-Control-Request-Method", "GET")
+        .send()
+        .await
+        .unwrap();
+    assert_ne!(resp.status().as_u16(), 204);
+    drop(srv);
+
+    // Opt-in: preflight answered, actual responses carry the origin.
+    let srv = spawn_server(
+        &model,
+        ServerOptions {
+            cors_origins: Some(vec!["http://webui.local".into()]),
+            ..Default::default()
+        },
+    )
+    .await;
+    let resp = srv
+        .client
+        .request(reqwest::Method::OPTIONS, format!("{}/v1/models", srv.base))
+        .header("Origin", "http://webui.local")
+        .header("Access-Control-Request-Method", "GET")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status().as_u16(), 204);
+    assert_eq!(
+        resp.headers().get("access-control-allow-origin").unwrap(),
+        "http://webui.local"
+    );
+    let resp = srv
+        .client
+        .get(format!("{}/healthz", srv.base))
+        .header("Origin", "http://webui.local")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        resp.headers().get("access-control-allow-origin").unwrap(),
+        "http://webui.local"
+    );
+    // A non-allowlisted origin gets no ACAO header.
+    let resp = srv
+        .client
+        .get(format!("{}/healthz", srv.base))
+        .header("Origin", "http://evil.example")
+        .send()
+        .await
+        .unwrap();
+    assert!(resp.headers().get("access-control-allow-origin").is_none());
+}

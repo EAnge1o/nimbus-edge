@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "nimbus-edge-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "futures-util",
@@ -649,7 +649,7 @@ dependencies = [
 
 [[package]]
 name = "nimbus-edge-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "nimbus-infer-rs",
  "serde",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "nimbus-edge-server"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "nimbus-edge-tests"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axum",
  "bytes",

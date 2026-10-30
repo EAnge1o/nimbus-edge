@@ -1,0 +1,62 @@
+{
+  "engine": "nimbus-infer-rs",
+  "host": {
+    "arch": "x86_64",
+    "build": {
+      "opt_level": "release",
+      "profile": "release",
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "target": "x86_64-pc-windows-gnu"
+    },
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "memory_total_bytes": 16849293312,
+    "os": "windows",
+    "threads": 20
+  },
+  "measured": true,
+  "model": {
+    "arch": "gpt2",
+    "context_len": 1024,
+    "kv_cache_mb_per_seq": 72.0,
+    "name": "gpt2",
+    "params": 124439808,
+    "path": "\\\\?\\C:\\Users\\32413\\.zcode\\workspace\\draft-82b1acd6-edca-4c84-bb6d-6c19bf486709\\checkpoints\\gpt2",
+    "quant": "int8",
+    "weight_mb": 118.32
+  },
+  "protocol": {
+    "aggregation": "median",
+    "max_new_tokens": 64,
+    "prompt": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. ",
+    "prompt_tokens": 131,
+    "runs": 3,
+    "temperature": 0.0,
+    "warmup": 1
+  },
+  "results": {
+    "decode_tok_s": 56.5,
+    "peak_rss_bytes": 1001013248,
+    "prefill_tok_s": 258.9,
+    "runs": [
+      {
+        "decode_s": 1.202,
+        "generated_tokens": 64,
+        "prefill_s": 0.526,
+        "ttft_s": 0.526
+      },
+      {
+        "decode_s": 1.133,
+        "generated_tokens": 64,
+        "prefill_s": 0.476,
+        "ttft_s": 0.476
+      },
+      {
+        "decode_s": 1.124,
+        "generated_tokens": 64,
+        "prefill_s": 0.506,
+        "ttft_s": 0.506
+      }
+    ],
+    "ttft_s": 0.506
+  }
+}

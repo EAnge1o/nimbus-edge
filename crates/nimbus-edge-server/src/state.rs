@@ -13,6 +13,9 @@ pub struct ServerConfig {
     /// When set, /v1/* requires `Authorization: Bearer <token>`.
     /// /healthz always stays open for liveness probes.
     pub auth_token: Option<String>,
+    /// When set (Some), emit CORS headers for the listed origins ("*" allowed).
+    /// None = CORS off entirely (default; see SECURITY.md).
+    pub cors_origins: Option<Vec<String>>,
 }
 
 pub struct AppState {
