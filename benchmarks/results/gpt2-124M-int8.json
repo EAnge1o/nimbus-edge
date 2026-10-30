@@ -34,29 +34,29 @@
     "warmup": 1
   },
   "results": {
-    "decode_tok_s": 56.5,
+    "decode_tok_s": 47.0,
     "peak_rss_bytes": 1001013248,
-    "prefill_tok_s": 258.9,
+    "prefill_tok_s": 246.7,
     "runs": [
       {
-        "decode_s": 1.202,
+        "decode_s": 1.309,
+        "generated_tokens": 64,
+        "prefill_s": 0.531,
+        "ttft_s": 0.531
+      },
+      {
+        "decode_s": 1.363,
         "generated_tokens": 64,
         "prefill_s": 0.526,
         "ttft_s": 0.526
       },
       {
-        "decode_s": 1.133,
+        "decode_s": 1.478,
         "generated_tokens": 64,
-        "prefill_s": 0.476,
-        "ttft_s": 0.476
-      },
-      {
-        "decode_s": 1.124,
-        "generated_tokens": 64,
-        "prefill_s": 0.506,
-        "ttft_s": 0.506
+        "prefill_s": 0.543,
+        "ttft_s": 0.543
       }
     ],
-    "ttft_s": 0.506
+    "ttft_s": 0.531
   }
 }

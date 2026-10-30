@@ -20,16 +20,24 @@ adheres to [Semantic Versioning](https://semver.org).
 - `scripts/check.ps1` / `check.sh`: the full CI gate as one local command.
 - `docs/demo.svg` + `docs/make_demo_svg.py`: README screenshot rendered
   from real command output (house style of the Nimbus family).
-- Real-model verification: gpt2-124M and SmolLM2-135M-Instruct converted
-  from HuggingFace, served end-to-end, benchmarked
-  ([benchmarks/](benchmarks/README.md)); gpt2 greedy output is
-  token-identical to the Python engine.
+- Real-model verification: gpt2-124M, distilgpt2-82M and
+  SmolLM2-135M-Instruct converted from HuggingFace, served end-to-end and
+  benchmarked ([benchmarks/](benchmarks/README.md)). Greedy generation is
+  token-identical to the Python engine on **all three** (32/32 each);
+  SmolLM2 chat completions terminate correctly at `<|im_end|>`.
 
 ### Fixed (engine, nimbus-infer-rs — separate repo)
 
-- The RoPE frequency table is now built in f64 and stored f32, matching the
-  Python engine bit-for-bit; a pure-f32 pipeline drifted ~1 ulp per entry,
-  which accumulated across layers on deep models.
+- **RoPE frequency formula**: the exponent in `inv_freq = theta ** (-2i/d)`
+  was computed as `(2i)/half` instead of `i/half`, doubling every frequency
+  and scrambling positional information on every RoPE model (learned-position
+  models were unaffected, which is why gpt2 fixtures never caught it). Found
+  by dumping the RoPE tables bit-for-bit against the Python engine and
+  bisecting with single-layer slices; the regression test now pins exact
+  table values produced by the Python engine. After the fix, cross-engine
+  logits agree to <1e-6 relative on single-layer and 30-layer LLaMA models.
+- The RoPE frequency table is built in f64 and stored f32 (a pure-f32
+  pipeline drifts ~1 ulp per entry across depth).
 
 ## [0.1.0] — 2026-10-30
 

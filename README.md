@@ -97,13 +97,14 @@ converted from HuggingFace via the Python engine):
 
 | model | arch | chat template | verified |
 |---|---|---|---|
-| gpt2-124M | gpt2 | none (base model) | real completion, greedy parity vs the Python engine (32/32 tokens) |
-| SmolLM2-135M-Instruct | llama (GQA 9/3, RoPE) | chatml | real chat completion — "The capital of France is Paris." |
+| gpt2-124M | gpt2 | none (base model) | greedy parity vs the Python engine: 32/32 tokens |
+| distilgpt2-82M | gpt2 | none (base model) | greedy parity vs the Python engine: 32/32 tokens |
+| SmolLM2-135M-Instruct | llama (GQA 9/3, RoPE) | chatml | greedy parity 32/32; real chat ends at `<|im_end|>` (`finish_reason: stop`) |
 | tiny-gpt2 (bundled fixture) | gpt2 | chatml (optional) | random weights; exercises the full API in tests and smoke |
 
 Measured throughput for these models: [benchmarks/README.md](benchmarks/README.md)
-(gpt2-124M fp32 decode ≈ 40 tok/s on an i7-12700H, int8 ≈ 56 tok/s — same
-engine, HTTP layer adds no per-token cost).
+(on an i7-12700H: gpt2-124M fp32 decode ≈ 37 tok/s, distilgpt2-82M int8 ≈
+92 tok/s — same engine, HTTP layer adds no per-token cost).
 
 GGUF is **not** supported in v1 — see the extension point note in
 [ARCHITECTURE.md](ARCHITECTURE.md).
