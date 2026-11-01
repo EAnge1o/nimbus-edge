@@ -18,7 +18,9 @@ SERVER_PID=$!
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
 
 for _ in $(seq 1 100); do
-  URL="$(grep -m1 '^listening on ' "$LOG" | awk '{print $3}')"
+  # || true: under `set -o pipefail` a failed grep (banner not printed yet)
+  # must not abort the script before the model has finished loading.
+  URL="$(grep -m1 '^listening on ' "$LOG" 2>/dev/null | awk '{print $3}' || true)"
   [[ -n "${URL:-}" ]] && break
   sleep 0.2
 done
