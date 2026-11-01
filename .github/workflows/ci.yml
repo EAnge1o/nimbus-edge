@@ -106,13 +106,21 @@ jobs:
             nimbus-edge/dist/nimbus-edge-*.tar.gz
             nimbus-edge/dist/nimbus-edge-*.tar.gz.sha256
           if-no-files-found: error
-      - name: Publish to the GitHub Release
+      # Each platform job publishes only its own artifact patterns —
+      # fail_on_unmatched_files would otherwise abort on the other OS's.
+      - name: Publish to the GitHub Release (windows)
+        if: matrix.asset == 'windows-x64'
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
             nimbus-edge/dist/nimbus-edge-*.zip
             nimbus-edge/dist/nimbus-edge-*.zip.sha256
+      - name: Publish to the GitHub Release (linux)
+        if: matrix.asset == 'linux-x64'
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          files: |
             nimbus-edge/dist/nimbus-edge-*.tar.gz
             nimbus-edge/dist/nimbus-edge-*.tar.gz.sha256
