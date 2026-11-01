@@ -93,9 +93,12 @@ jobs:
         if: matrix.asset == 'linux-x64'
         shell: bash
         run: |
+          set -x
+          ls -la dist/
           mkdir -p dist/extracted
           tar -xzf dist/nimbus-edge-*.tar.gz -C dist/extracted
-          bash scripts/smoke.sh dist/extracted/nimbus-edge-*
+          ls -la dist/extracted/
+          bash scripts/smoke.sh dist/extracted/nimbus-edge-*/
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
