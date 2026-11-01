@@ -98,7 +98,7 @@ jobs:
           mkdir -p dist/extracted
           tar -xzf dist/nimbus-edge-*.tar.gz -C dist/extracted
           ls -la dist/extracted/
-          bash scripts/smoke.sh dist/extracted/nimbus-edge-*/
+          bash -x scripts/smoke.sh dist/extracted/nimbus-edge-*/
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
